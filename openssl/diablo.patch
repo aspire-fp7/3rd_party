@@ -1,0 +1,82 @@
+diff -ruN openssl-1.0.2d/crypto/aes/asm/aes-armv4.pl openssl-new/crypto/aes/asm/aes-armv4.pl
+--- openssl-1.0.2d/crypto/aes/asm/aes-armv4.pl	2015-07-09 13:57:15.000000000 +0200
++++ openssl-new/crypto/aes/asm/aes-armv4.pl	2016-02-03 10:49:56.822877478 +0100
+@@ -181,15 +181,10 @@
+ .type   AES_encrypt,%function
+ .align	5
+ AES_encrypt:
+-#if __ARM_ARCH__<7
+-	sub	r3,pc,#8		@ AES_encrypt
+-#else
+-	adr	r3,AES_encrypt
+-#endif
+ 	stmdb   sp!,{r1,r4-r12,lr}
+ 	mov	$rounds,r0		@ inp
++	adr	$tbl,AES_Te	@ Te
+ 	mov	$key,r2
+-	sub	$tbl,r3,#AES_encrypt-AES_Te	@ Te
+ #if __ARM_ARCH__<7
+ 	ldrb	$s0,[$rounds,#3]	@ load input data in endian-neutral
+ 	ldrb	$t1,[$rounds,#2]	@ manner...
+@@ -457,7 +452,7 @@
+ 	bne	.Labrt
+ 
+ .Lok:	stmdb   sp!,{r4-r12,lr}
+-	sub	$tbl,r3,#_armv4_AES_set_encrypt_key-AES_Te-1024	@ Te4
++	adr	$tbl,AES_Te+1024	@ Te4
+ 
+ 	mov	$rounds,r0		@ inp
+ 	mov	lr,r1			@ bits
+@@ -949,15 +944,10 @@
+ .type   AES_decrypt,%function
+ .align	5
+ AES_decrypt:
+-#if __ARM_ARCH__<7
+-	sub	r3,pc,#8		@ AES_decrypt
+-#else
+-	adr	r3,AES_decrypt
+-#endif
+ 	stmdb   sp!,{r1,r4-r12,lr}
+ 	mov	$rounds,r0		@ inp
++	adr	$tbl,AES_Td		@ Td
+ 	mov	$key,r2
+-	sub	$tbl,r3,#AES_decrypt-AES_Td		@ Td
+ #if __ARM_ARCH__<7
+ 	ldrb	$s0,[$rounds,#3]	@ load input data in endian-neutral
+ 	ldrb	$t1,[$rounds,#2]	@ manner...
+diff -ruN openssl-1.0.2d/crypto/bn/asm/armv4-mont.pl openssl-new/crypto/bn/asm/armv4-mont.pl
+--- openssl-1.0.2d/crypto/bn/asm/armv4-mont.pl	2015-07-09 13:57:15.000000000 +0200
++++ openssl-new/crypto/bn/asm/armv4-mont.pl	2016-02-03 10:51:49.830872675 +0100
+@@ -75,7 +75,7 @@
+ #if __ARM_MAX_ARCH__>=7
+ .align	5
+ .LOPENSSL_armcap:
+-.word	OPENSSL_armcap_P-bn_mul_mont
++.word	OPENSSL_armcap_P-P0
+ #endif
+ 
+ .global	bn_mul_mont
+@@ -88,9 +88,9 @@
+ #if __ARM_MAX_ARCH__>=7
+ 	tst	ip,#7
+ 	bne	.Lialu
+-	adr	r0,bn_mul_mont
++	adr	r0,P0
+ 	ldr	r2,.LOPENSSL_armcap
+-	ldr	r0,[r0,r2]
++P0:	ldr	r0,[r0,r2]
+ 	tst	r0,#1			@ NEON available?
+ 	ldmia	sp, {r0,r2}
+ 	beq	.Lialu
+diff -ruN openssl-1.0.2d/crypto/sha/asm/sha256-armv4.pl openssl-new/crypto/sha/asm/sha256-armv4.pl
+--- openssl-1.0.2d/crypto/sha/asm/sha256-armv4.pl	2015-07-09 13:57:15.000000000 +0200
++++ openssl-new/crypto/sha/asm/sha256-armv4.pl	2016-02-03 10:49:33.242876820 +0100
+@@ -218,7 +218,7 @@
+ 	add	$len,$inp,$len,lsl#6	@ len to point at the end of inp
+ 	stmdb	sp!,{$ctx,$inp,$len,r4-r11,lr}
+ 	ldmia	$ctx,{$A,$B,$C,$D,$E,$F,$G,$H}
+-	sub	$Ktbl,r3,#256+32	@ K256
++	adr	$Ktbl,K256	@ K256
+ 	sub	sp,sp,#16*4		@ alloca(X[16])
+ .Loop:
+ # if __ARM_ARCH__>=7
